@@ -4,8 +4,7 @@ const Pusher = require('pusher');
 
 const app = express();
 
-// Increase JSON body limit to 5MB to handle Base64 screenshot payloads
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json());
 app.use(cors());
 
 // Initialize Pusher using environment variables set in Render
@@ -17,34 +16,13 @@ const pusher = new Pusher({
   useTLS: true
 });
 
-// Memory cache for latest worker screenshots
-const latestScreenshots = {};
-
 // 1. Worker Active Ping Endpoint
 app.post('/worker-active', (req, res) => {
-  const data = req.body;
-  
-  // Attach cached screenshot if available
-  if (latestScreenshots[data.workerId]) {
-    data.screenshot = latestScreenshots[data.workerId];
-  }
-
-  pusher.trigger('master-notifications', 'worker-active', data);
+  pusher.trigger('master-notifications', 'worker-active', req.body);
   res.status(200).send({ status: 'OK' });
 });
 
-// 2. Screenshot Upload Endpoint
-app.post('/upload-screenshot', (req, res) => {
-  const { workerId, image } = req.body;
-  if (workerId && image) {
-    latestScreenshots[workerId] = image;
-    // Broadcast updated image to Master Dashboard
-    pusher.trigger('master-notifications', 'screenshot-updated', { workerId, image });
-  }
-  res.status(200).send({ status: 'OK' });
-});
-
-// 3. Command Relay Endpoint
+// 2. Command Relay Endpoint
 app.post('/send-command', (req, res) => {
   const { targetChannel, event, data } = req.body;
   pusher.trigger(targetChannel, event, data);
