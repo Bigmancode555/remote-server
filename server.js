@@ -22,7 +22,14 @@ app.post('/worker-active', (req, res) => {
   res.status(200).send({ status: 'OK' });
 });
 
-// 2. Command Relay Endpoint
+// 2. Incoming Worker Chat Message Endpoint
+app.post('/worker-chat-message', (req, res) => {
+  const { workerId, text, timestamp } = req.body;
+  pusher.trigger('master-notifications', 'chat-from-worker', { workerId, text, timestamp });
+  res.status(200).send({ status: 'OK' });
+});
+
+// 3. Command Relay Endpoint
 app.post('/send-command', (req, res) => {
   const { targetChannel, event, data } = req.body;
   pusher.trigger(targetChannel, event, data);
